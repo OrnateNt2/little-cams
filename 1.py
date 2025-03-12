@@ -9,13 +9,34 @@ def toggle_recording():
     global recording
     recording = not recording
 
+def list_available_cameras(max_index=5):
+    available = []
+    for i in range(max_index):
+        cap_test = cv2.VideoCapture(i)
+        if cap_test.isOpened():
+            available.append(i)
+            cap_test.release()
+    return available
+
 root = tk.Tk()
 root.withdraw()  
-
 record_video = messagebox.askyesno("Запись видео", "Хотите записывать видео?")
 root.destroy()
 
-cap = cv2.VideoCapture(0)
+available_cams = list_available_cameras(5)
+if not available_cams:
+    print("Ошибка: не найдены доступные камеры")
+    exit()
+print("Доступные камеры:", available_cams)
+try:
+    cam_index = int(input("Введите номер камеры из списка: "))
+except ValueError:
+    cam_index = available_cams[0]
+if cam_index not in available_cams:
+    print("Указанная камера недоступна, используем камеру 0")
+    cam_index = available_cams[0]
+
+cap = cv2.VideoCapture(cam_index)
 if not cap.isOpened():
     print("Ошибка: не удалось открыть камеру")
     exit()
@@ -41,10 +62,8 @@ recording = False
 def create_gui():
     gui = tk.Tk()
     gui.title("Управление записью")
-
     chk = tk.Checkbutton(gui, text="Записывать видео", command=toggle_recording)
     chk.pack(pady=10)
-
     gui.mainloop()
 
 import threading
@@ -77,10 +96,11 @@ while True:
         frame_count = 0
         prev_time = current_time
 
-    cv2.putText(frame, f"FPS: {fps_display:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(frame, f"FPS: {fps_display:.2f}", (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    cv2.imshow("Webcam", frame)
-    cv2.imshow("Frame Difference", frame_diff)
+    cv2.imshow("Cam", frame)
+    cv2.imshow("Difference", frame_diff)
 
     if recording:
         out_video.write(frame)
